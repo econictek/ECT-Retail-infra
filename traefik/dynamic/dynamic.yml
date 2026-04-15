@@ -1,0 +1,57 @@
+http:
+  routers:
+    tenant-admin:
+      rule: Host(`admin.econictek.com`)
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: le
+        domains:
+          - main: econictek.com
+            sans:
+              - "*.econictek.com"
+      service: store-api
+
+    store-api:
+      rule: HostRegexp(`{tenant:[a-z0-9-]+}.econictek.com`) && PathPrefix(`/api`)
+      entryPoints:
+        - websecure
+      priority: 10
+      middlewares:
+        - strip-api-prefix
+      tls:
+        certResolver: le
+        domains:
+          - main: econictek.com
+            sans:
+              - "*.econictek.com"
+      service: store-api
+
+    store-web:
+      rule: HostRegexp(`{tenant:[a-z0-9-]+}.econictek.com`)
+      entryPoints:
+        - websecure
+      priority: 1
+      tls:
+        certResolver: le
+        domains:
+          - main: econictek.com
+            sans:
+              - "*.econictek.com"
+      service: store-web
+
+  middlewares:
+    strip-api-prefix:
+      stripPrefix:
+        prefixes:
+          - /api
+
+  services:
+    store-api:
+      loadBalancer:
+        servers:
+          - url: http://econictek-retail-api:8000
+    store-web:
+      loadBalancer:
+        servers:
+          - url: http://econictek-retail-fe:3000
